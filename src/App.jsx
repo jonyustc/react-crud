@@ -1,7 +1,18 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import logo from "./assets/lws-logo-en.svg";
 
-const iniTask = {
+const initTasks = [
+  {
+    id: "10111",
+    taskName: "Db Migration",
+    description: "Lorem ipsum dolor sit amet consectetur",
+    tags: ["SQL", "ORACLE", "EF Core"],
+    priority: "High",
+    isFavorite: true,
+  },
+];
+
+const newInitTask = {
   id: "",
   taskName: "",
   description: "",
@@ -12,93 +23,66 @@ const iniTask = {
 
 function App() {
   const [showAddTask, setShowAddTask] = useState(false);
-  const [tasks, setTasks] = useState([]);
+  const [tasks, setTasks] = useState(initTasks);
+  const [task, setTask] = useState(newInitTask);
 
   //const [tasks, dispatch] = useReducer(taskReducer, []);
 
-  const [task, setTask] = useState(iniTask);
   const [searchText, setSearchText] = useState("");
 
-  async function getTasks() {
-    const res = await fetch("data.json");
-    const data = await res.json();
+  // async function getTasks() {
+  //   const res = await fetch("data.json");
+  //   const data = await res.json();
 
-    setTasks(data.tasks);
-  }
+  //   setTasks(data.tasks);
+  // }
 
-  useEffect(() => {
-    getTasks();
-  }, []);
+  // useEffect(() => {
+  //   getTasks();
+  // }, []);
 
   function handleAddTaskModal() {
     setShowAddTask(true);
   }
 
-  function handleCloseAddTaskModal() {
+  function handleAddTask(newTask) {
+    // setTasks((tasks) => {
+    //   return tasks.map((task) => {
+    //     return task.id === newTask.id ? newTask : task;
+    //   });
+    // });
+
+    setTasks((tasks) => [...tasks, newTask]);
     setShowAddTask(false);
-    setTask(iniTask);
+    setTask(newInitTask);
   }
 
-  function handleAddTaskForm(e) {
-    e.preventDefault();
-    //with control state
-
-    const newTask = { ...task };
-
-    if (newTask.id) {
-      console.log("new task");
-      newTask.tags = newTask.tags.includes(",")
-        ? newTask.tags.split(",")
-        : [newTask.tags];
-
-      setTasks((tsk) => {
-        return tsk.map((t) => {
-          return t.id === newTask.id ? newTask : t;
-        });
+  function handleUpdateTask(newTask) {
+    setTasks((tasks) => {
+      return tasks.map((task) => {
+        return task.id === newTask.id ? newTask : task;
       });
+    });
+    setShowAddTask(false);
+    setTask(newInitTask);
+  }
 
-      setTask(iniTask);
-      setShowAddTask(false);
-    } else {
-      newTask.id = Date.now().toString().slice(-6);
-      newTask.tags = newTask.tags.includes(",")
-        ? newTask.tags.split(",")
-        : [newTask.tags];
-
-      setTasks((tsk) => [...tsk, newTask]);
-
-      setTask(iniTask);
-      setShowAddTask(false);
-    }
-
-    //// without control state
-    // const formData = new FormData(e.target);
-
-    // const data = Object.fromEntries(formData);
-
-    // if (!data.isFavorite) data.isFavorite = false;
-
-    // data.tags = data.tags.includes(",") ? data.tags.split(",") : [data.tags];
-
-    // data.id = Date.now().toString().slice(-6);
-    // setTasks((tsk) => [...tsk, data]);
-    // setShowAddTask(false);
+  function handleCloseAddTaskModal() {
+    setShowAddTask(false);
+    setTask(newInitTask);
   }
 
   function handleEditTask(id) {
-    const taskToEdit = tasks.find((x) => x.id === id);
-    setTask(taskToEdit);
+    setTask(tasks.find((x) => x.id === id));
     setShowAddTask(true);
   }
 
   function handleDeleteTask(id) {
     setTasks((tsk) => tsk.filter((t) => t.id !== id));
-    setTask(iniTask);
   }
 
   function handleDeleteAllTask() {
     setTasks([]);
-    setTask(iniTask);
   }
 
   function handleAddFavorite(id) {
@@ -115,7 +99,7 @@ function App() {
         ? tsk.filter((t) =>
             t.taskName.toLowerCase().includes(searchText.toLowerCase())
           )
-        : getTasks()
+        : tasks
     );
   }
 
@@ -127,8 +111,12 @@ function App() {
         ? tsk.filter((t) =>
             t.taskName.toLowerCase().includes(text.toLowerCase())
           )
-        : getTasks()
+        : tasks
     );
+  }
+
+  function handleSetTask(newTask) {
+    setTask(newTask);
   }
 
   return (
@@ -141,25 +129,28 @@ function App() {
         <TaskBoard
           onShowAddTaskModal={handleAddTaskModal}
           tasks={tasks}
-          onEditTask={handleEditTask}
           onDeleteTask={handleDeleteTask}
           onDeleteAllTask={handleDeleteAllTask}
           onAddFavorite={handleAddFavorite}
           onSearch={handleSearch}
           searchText={searchText}
+          onEditTask={handleEditTask}
           onSetSearchText={handleOnSearchChange}
         />
 
         <Footer />
       </div>
 
-      <AddTask
-        showAddTask={showAddTask}
-        onCloseModal={handleCloseAddTaskModal}
-        onAddTask={handleAddTaskForm}
-        task={task}
-        setTask={setTask}
-      />
+      {showAddTask && (
+        <AddTask
+          task={task}
+          onAddTask={handleAddTask}
+          onUpdateTask={handleUpdateTask}
+          showAddTask={showAddTask}
+          onCloseModal={handleCloseAddTaskModal}
+          onSetTask={handleSetTask}
+        />
+      )}
     </>
   );
 }
@@ -200,16 +191,62 @@ function Hero() {
   );
 }
 
-function AddTask({ task, setTask, showAddTask, onCloseModal, onAddTask }) {
-  // const [isFavorite, setIsFavorite] = useState(false);
-
+function AddTask({
+  task,
+  onSetTask,
+  onAddTask,
+  onUpdateTask,
+  showAddTask,
+  onCloseModal,
+}) {
+  console.log(task);
   function onChangeTask(e) {
-    // console.log(Boolean(e.target.value));
     const value =
       e.target.name === "isFavorite" ? e.target.checked : e.target.value;
     const changeTsk = { ...task, [e.target.name]: value };
 
-    setTask(changeTsk);
+    onSetTask(changeTsk);
+  }
+
+  function handleAddTaskForm(e) {
+    e.preventDefault();
+    //with control state
+
+    const newTask = { ...task };
+
+    if (newTask.id) {
+      newTask.tags = newTask.tags.includes(",")
+        ? newTask.tags.split(",")
+        : [newTask.tags];
+
+      onUpdateTask(newTask);
+      //setTask(newTask);
+      //setShowAddTask(false);
+    } else {
+      newTask.id = Date.now().toString().slice(-6);
+      newTask.tags = newTask.tags.includes(",")
+        ? newTask.tags.split(",")
+        : [newTask.tags];
+      onAddTask(newTask);
+
+      //setTasks((tsk) => [...tsk, newTask]);
+
+      //setTask(newTask);
+      //setShowAddTask(false);
+    }
+
+    //// without control state
+    // const formData = new FormData(e.target);
+
+    // const data = Object.fromEntries(formData);
+
+    // if (!data.isFavorite) data.isFavorite = false;
+
+    // data.tags = data.tags.includes(",") ? data.tags.split(",") : [data.tags];
+
+    // data.id = Date.now().toString().slice(-6);
+    // setTasks((tsk) => [...tsk, data]);
+    // setShowAddTask(false);
   }
 
   return (
@@ -217,13 +254,13 @@ function AddTask({ task, setTask, showAddTask, onCloseModal, onAddTask }) {
       <button className="btn-close" onClick={onCloseModal}>
         &times;
       </button>
-      <form className="add-task-form" onSubmit={onAddTask}>
+      <form className="add-task-form" onSubmit={handleAddTaskForm}>
         {/* <h2>Add Task</h2> */}
         <label htmlFor="taskName">Task Name</label>
         <input
           type="text"
           name="taskName"
-          defaultValue={task.taskName}
+          value={task.taskName}
           onChange={onChangeTask}
           placeholder="Add Task Name"
           id="taskName"
@@ -231,7 +268,7 @@ function AddTask({ task, setTask, showAddTask, onCloseModal, onAddTask }) {
         <label htmlFor="description">Task Description</label>
         <textarea
           name="description"
-          defaultValue={task.description}
+          value={task.description}
           onChange={onChangeTask}
         ></textarea>
         <label htmlFor="tags">Tags</label>
@@ -240,7 +277,7 @@ function AddTask({ task, setTask, showAddTask, onCloseModal, onAddTask }) {
           name="tags"
           placeholder="Add Tags"
           id="tags"
-          defaultValue={task.tags}
+          value={task.tags}
           onChange={onChangeTask}
         />
         <label htmlFor="priority">Priority</label>
@@ -328,36 +365,6 @@ function TaskBoard({
   );
 }
 
-function SearchTask({ onSearch, searchText, onSetSearchText }) {
-  return (
-    <form className="form-search" onSubmit={onSearch}>
-      <input
-        type="search"
-        name="search"
-        placeholder="search task..."
-        value={searchText}
-        onChange={(e) => {
-          onSetSearchText(e.target.value);
-        }}
-      />
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 20 20"
-        fill="currentColor"
-        className="w-5 h-5"
-      >
-        <path
-          fillRule="evenodd"
-          d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9Z"
-          clipRule="evenodd"
-        />
-      </svg>
-
-      <input type="submit" className="hidden" />
-    </form>
-  );
-}
-
 function TaskTable({ task, onEditTask, onDeleteTask, onAddFavorite }) {
   return (
     <tr>
@@ -405,6 +412,36 @@ function TaskTable({ task, onEditTask, onDeleteTask, onAddFavorite }) {
         </button>
       </td>
     </tr>
+  );
+}
+
+function SearchTask({ onSearch, searchText, onSetSearchText }) {
+  return (
+    <form className="form-search" onSubmit={onSearch}>
+      <input
+        type="search"
+        name="search"
+        placeholder="search task..."
+        value={searchText}
+        onChange={(e) => {
+          onSetSearchText(e.target.value);
+        }}
+      />
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 20 20"
+        fill="currentColor"
+        className="w-5 h-5"
+      >
+        <path
+          fillRule="evenodd"
+          d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9Z"
+          clipRule="evenodd"
+        />
+      </svg>
+
+      <input type="submit" className="hidden" />
+    </form>
   );
 }
 
